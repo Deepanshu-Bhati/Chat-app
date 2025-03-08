@@ -54,7 +54,10 @@ app.post('/login',async (req,res)=>{
     }
 })
 
+
+
 app.get('/',middleware,(req,res)=>{
+    
     res.send("user is connected");
 })
 
@@ -67,10 +70,14 @@ wss.on('connection',(ws)=>{
 
     })
 
-    ws.on('message',(message,isBinary)=>{
+    ws.on('message',async(message,isBinary)=>{
         const msg=isBinary?message:message.toString();
         const data=JSON.parse(msg);
         const userId=data.userId;
+        const senderId=data.senderId;
+        await prisma.message({
+        
+        })
         if(data.type==="register"){
 
             users.set(userId,ws);
