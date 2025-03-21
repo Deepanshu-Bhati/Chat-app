@@ -1,4 +1,5 @@
 import { WebSocketServer } from "ws";
+import { v4 as uuidv4 } from "uuid";
 const wss =new WebSocketServer({port:8080});
 const users=new Map();
 import cors from 'cors'
@@ -10,7 +11,10 @@ import { middleware } from "./middleware.js";
 import {prisma} from './db.js';
 const app=express();
 app.use(express.json());
-app.use(cors())
+app.use(cors({
+    origin: "http://localhost:3000",  // ✅ Your frontend URL
+    credentials: true,  // ✅ Allows cookies to be sent/received
+  }));
 
 const SECRET_KEY = process.env.JWT_SECRET || "your_secret_key";
 
@@ -44,6 +48,13 @@ app.post('/login',async (req,res)=>{
             const token=jwt.sign({email:email},SECRET_KEY);
             console.log(token);
             res.setHeader("Authenticate",`bearer ${token}`);
+
+            res.cookie("auth_token", token, {
+                httpOnly: true,
+                secure: false,
+                sameSite: "Strict",
+                maxAge: 60 * 60 * 1000 // 1 hour
+            });
             res.status(200).json({
                 message:"user is login ",
                 token:token
@@ -62,38 +73,17 @@ app.get('/',middleware,(req,res)=>{
 })
 
 
+const client=new Map();
+wss.on('connection',(ws,req)=>{
+    const userId = req.url.split("?userId=")[1]; 
+    Map.put(userId,ws);
 
-
-wss.on('connection',(ws)=>{
-    ws.on('error',(error)=>{
-        console.log("error is detected"+error);
-
+    ws.on('message',(data,isBinary)=>{
+        const msg=isBinary?data:data.toString()
+        console.log(msg);
     })
-
-    ws.on('message',async(message,isBinary)=>{
-        const msg=isBinary?message:message.toString();
-        const data=JSON.parse(msg);
-        const userId=data.userId;
-        const senderId=data.senderId;
-        await prisma.message({
-        
-        })
-        if(data.type==="register"){
-
-            users.set(userId,ws);
-            const web= users.get(userId);
-            web.send('user is now connected')
-            console.log("user is created with userId "+ userId)
-        }
-        if(data.type === 'sentmessage'){
-            const User=users.get(userId)
-            User.send(JSON.stringify(data.message))
-        }
-
-    })
-    console.log("user is connected");
 })
 
-app.listen(3000,()=>{
+app.listen(3001,()=>{
     console.log(`app is running on the port http://localhost:3000`)
 })

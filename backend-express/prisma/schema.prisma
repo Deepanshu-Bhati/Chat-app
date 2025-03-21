@@ -16,15 +16,21 @@ datasource db {
   firstname String
   lastname  String?
   password  String
+  messagesSent     Message[] @relation("SentMessages") 
+  messagesReceived Message[] @relation("ReceivedMessages") 
+
+
 }
 
-model message {
+model Message {
+  message_id String @id @default(uuid())
   message String
-  senderemail String?
-  
-  time DateTime @default(now())
-  user User? @relation(fields:  [messageId], references:[id])
-  messageId String @unique 
+  senderId String
+  receiverId String
+  time      DateTime @default(now())
+  sender   User @relation(fields: [senderId], references: [id], name: "SentMessages")
+  receiver User @relation(fields: [receiverId], references: [id], name: "ReceivedMessages")
+  isdelivered Boolean
 }
 
 
